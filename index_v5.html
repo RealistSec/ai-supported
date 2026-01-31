@@ -177,134 +177,138 @@
             scroll-behavior: smooth;
         }
 
-        /* --- V3: CANVAS 2D --- */
-        #canvas-bg {
+        /* --- V5: SVG Motion Paths --- */
+        .global-funky-bg {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
             z-index: -1;
+            overflow: hidden;
+            pointer-events: none;
             background: #f8fafc;
-            /* Fallback / Base */
+        }
+
+        .motion-icon {
+            position: absolute;
+            top: 0;
+            left: 0;
+            font-size: 2rem;
+            will-change: transform, offset-path;
+            /* Default offset-anchor is center */
+        }
+
+        /* Define Paths */
+        .path-1 {
+            offset-path: path("M -100,100 C 200,300 500,0 800,200 S 1200,600 1600,200");
+            animation: move-1 15s infinite linear;
+            color: #14b8a6;
+            font-size: 3rem;
+        }
+
+        @keyframes move-1 {
+            0% {
+                offset-distance: 0%;
+                transform: rotate(0deg);
+            }
+
+            100% {
+                offset-distance: 100%;
+                transform: rotate(360deg);
+            }
+        }
+
+        .path-2 {
+            offset-path: path("M 1500,-100 Q 1000,600 500,200 T -100,800");
+            animation: move-2 20s infinite linear;
+            color: #8b5cf6;
+            font-size: 2.5rem;
+            animation-delay: -5s;
+        }
+
+        @keyframes move-2 {
+            0% {
+                offset-distance: 0%;
+                transform: scale(0.8);
+            }
+
+            50% {
+                transform: scale(1.2);
+            }
+
+            100% {
+                offset-distance: 100%;
+                transform: scale(0.8);
+            }
+        }
+
+        .path-3 {
+            offset-path: path("M 200,1200 C 400,800 600,800 800,500 S 1000,0 1200,-200");
+            animation: move-3 25s infinite linear;
+            color: #f59e0b;
+            font-size: 4rem;
+        }
+
+        @keyframes move-3 {
+            100% {
+                offset-distance: 100%;
+            }
+        }
+
+        /* Spiral attempt */
+        .path-4 {
+            offset-path: path("M 50% 50% m -200,0 a 200,200 0 1,0 400,0 a 200,200 0 1,0 -400,0");
+            /* Circle */
+            /* Better spiral requires complex path data or multiple nested element rotations, 
+               keeping it simple clean curves for motion path demo */
+            offset-path: path("M -200,400 C 100,400 300,600 500,200 S 900,0 1500,800");
+            animation: move-4 18s infinite ease-in-out;
+            color: #ec4899;
+        }
+
+        @keyframes move-4 {
+            0% {
+                offset-distance: 0%;
+                opacity: 0;
+            }
+
+            10% {
+                opacity: 1;
+            }
+
+            90% {
+                opacity: 1;
+            }
+
+            100% {
+                offset-distance: 100%;
+                opacity: 0;
+            }
         }
     </style>
 </head>
 
 <body class="bg-slate-50 text-slate-800 flex flex-col min-h-screen relative">
 
-    <!-- V3: Canvas Element -->
-    <canvas id="canvas-bg"></canvas>
+    <!-- V5: Motion Paths -->
+    <div class="global-funky-bg" aria-hidden="true">
+        <!-- SVG for background lines (Optional visualizer) -->
+        <svg class="absolute inset-0 w-full h-full opacity-10 text-teal-200"
+            style="stroke: currentColor; fill: none; stroke-width: 2;">
+            <path d="M -100,100 C 200,300 500,0 800,200 S 1200,600 1600,200" />
+            <path d="M 1500,-100 Q 1000,600 500,200 T -100,800" />
+            <path d="M 200,1200 C 400,800 600,800 800,500 S 1000,0 1200,-200" />
+            <path d="M -200,400 C 100,400 300,600 500,200 S 900,0 1500,800" />
+        </svg>
 
-    <script>
-            (function () {
-                const canvas = document.getElementById('canvas-bg');
-                const ctx = canvas.getContext('2d', { alpha: false }); // Optimize: alpha false if we draw bg
-
-                let width, height;
-
-                // Configuration
-                const PARTICLE_COUNT = 3000;
-                const PARTICLES = [];
-                const COLORS = ['#14b8a6', '#8b5cf6', '#f59e0b', '#ec4899', '#3b82f6'];
-
-                // Resize handler
-                function resize() {
-                    width = window.innerWidth;
-                    height = window.innerHeight;
-                    canvas.width = width;
-                    canvas.height = height;
-                }
-                window.addEventListener('resize', resize);
-                resize();
-
-                // Particle Class (Functional style for perf)
-                function createParticle() {
-                    return {
-                        x: Math.random() * width,
-                        y: Math.random() * height,
-                        vx: (Math.random() - 0.5) * 0.5,
-                        vy: (Math.random() - 0.5) * 0.5,
-                        size: Math.random() * 2 + 0.5,
-                        color: COLORS[Math.floor(Math.random() * COLORS.length)],
-                        type: Math.random() > 0.5 ? '*' : '✨',
-                        phase: Math.random() * Math.PI * 2
-                    };
-                }
-
-                // Init
-                for (let i = 0; i < PARTICLE_COUNT; i++) {
-                    PARTICLES.push(createParticle());
-                }
-
-                // Mouse Interaction
-                let mouseX = -1000, mouseY = -1000;
-                window.addEventListener('mousemove', e => {
-                    mouseX = e.clientX;
-                    mouseY = e.clientY;
-                });
-
-                // Main Loop
-                function loop() {
-                    // Clear with base color (simulating slate-50 #f8fafc)
-                    ctx.fillStyle = '#f8fafc';
-                    ctx.fillRect(0, 0, width, height);
-
-                    // Update & Draw
-                    for (let i = 0; i < PARTICLE_COUNT; i++) {
-                        const p = PARTICLES[i];
-
-                        // Move
-                        p.x += p.vx;
-                        p.y += p.vy;
-                        p.phase += 0.02;
-
-                        // Mouse Interaction (Wind/Gravity)
-                        const dx = p.x - mouseX;
-                        const dy = p.y - mouseY;
-                        const distSq = dx * dx + dy * dy;
-                        if (distSq < 20000) { // < 140px radius
-                            const f = 100 / (distSq + 0.1);
-                            p.vx += dx * f * 0.001;
-                            p.vy += dy * f * 0.001;
-                        }
-
-                        // Friction/Drag
-                        p.vx *= 0.99;
-                        p.vy *= 0.99;
-
-                        // Wrap
-                        if (p.x < 0) p.x = width;
-                        if (p.x > width) p.x = 0;
-                        if (p.y < 0) p.y = height;
-                        if (p.y > height) p.y = 0;
-
-                        // Draw
-                        ctx.fillStyle = p.color;
-                        const pulse = 1 + Math.sin(p.phase) * 0.3;
-
-                        if (p.type === '*') {
-                            // Draw Cross/Asterisk
-                            const s = p.size * pulse;
-                            ctx.fillRect(p.x - s, p.y - s / 4, s * 2, s / 2);
-                            ctx.fillRect(p.x - s / 4, p.y - s, s / 2, s * 2);
-                        } else {
-                            // Draw Sparkle (Diamond)
-                            const s = p.size * pulse;
-                            ctx.beginPath();
-                            ctx.moveTo(p.x, p.y - s);
-                            ctx.lineTo(p.x + s, p.y);
-                            ctx.lineTo(p.x, p.y + s);
-                            ctx.lineTo(p.x - s, p.y);
-                            ctx.fill();
-                        }
-                    }
-
-                    requestAnimationFrame(loop);
-                }
-                loop();
-            })();
-    </script>
+        <div class="motion-icon path-1">*</div>
+        <div class="motion-icon path-2">✨</div>
+        <div class="motion-icon path-3">*</div>
+        <div class="motion-icon path-4">✨</div>
+        <div class="motion-icon path-1" style="animation-delay: -7s; opacity: 0.5;">✨</div>
+        <div class="motion-icon path-2" style="animation-delay: -15s; opacity: 0.5;">*</div>
+    </div>
 
     <!-- Skip to Main Content -->
     <a href="#main-content"

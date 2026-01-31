@@ -160,150 +160,168 @@
                         teal: {
                             50: '#f0fdfa',
                             100: '#ccfbf1',
-                            500: '#14b8a6',
-                            700: '#0f766e',
-                            800: '#115e59',
-                            900: '#134e4a',
-                        }
-                    }
-                }
-            }
-        }
+    < script >
+                            tailwind.config = { theme: { extend: { colors: { teal: { 50: '#f0fdfa', 100: '#ccfbf1', 200: '#99f6e4', 300: '#5eead4', 400: '#2dd4bf', 500: '#14b8a6', 600: '#0d9488', 700: '#0f766e', 800: '#115e59', 900: '#134e4a', 950: '#042f2e', } } } } }
     </script>
-
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body {
             font-family: 'Inter', sans-serif;
             scroll-behavior: smooth;
         }
 
-        /* --- V3: CANVAS 2D --- */
-        #canvas-bg {
+        /* --- V2: WAAPI PHYSICS --- */
+        .waapi-v2-bg {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
             z-index: -1;
+            overflow: hidden;
             background: #f8fafc;
-            /* Fallback / Base */
+            touch-action: none;
+            /* Prevent scroll on touch to allow interaction?? No, user needs scroll. */
+        }
+
+        .waapi-particle {
+            position: absolute;
+            will-change: transform;
+            user-select: none;
+            cursor: crosshair;
+            font-style: normal;
         }
     </style>
 </head>
 
 <body class="bg-slate-50 text-slate-800 flex flex-col min-h-screen relative">
 
-    <!-- V3: Canvas Element -->
-    <canvas id="canvas-bg"></canvas>
+    <!-- V2: WAAPI Container -->
+    <div class="waapi-v2-bg" id="waapi-world" aria-hidden="true"></div>
 
     <script>
-            (function () {
-                const canvas = document.getElementById('canvas-bg');
-                const ctx = canvas.getContext('2d', { alpha: false }); // Optimize: alpha false if we draw bg
+        (function () {
+            const world = document.getElementById('waapi-world');
+            const particleCount = 60;
+            const icons = ['*', '✨'];
+            const colors = ['#14b8a6', '#8b5cf6', '#f59e0b', '#ec4899', '#3b82f6'];
 
-                let width, height;
+            const particles = [];
 
-                // Configuration
-                const PARTICLE_COUNT = 3000;
-                const PARTICLES = [];
-                const COLORS = ['#14b8a6', '#8b5cf6', '#f59e0b', '#ec4899', '#3b82f6'];
+            // Spawn Particles
+            for (let i = 0; i < particleCount; i++) {
+                const el = document.createElement('div');
+                el.classList.add('waapi-particle');
+                el.textContent = icons[Math.floor(Math.random() * icons.length)];
+                el.style.color = colors[Math.floor(Math.random() * colors.length)];
+                el.style.fontSize = (Math.random() * 20 + 20) + 'px';
 
-                // Resize handler
-                function resize() {
-                    width = window.innerWidth;
-                    height = window.innerHeight;
-                    canvas.width = width;
-                    canvas.height = height;
-                }
-                window.addEventListener('resize', resize);
-                resize();
+                // Random initial position
+                const x = Math.random() * window.innerWidth;
+                const y = Math.random() * window.innerHeight;
 
-                // Particle Class (Functional style for perf)
-                function createParticle() {
-                    return {
-                        x: Math.random() * width,
-                        y: Math.random() * height,
-                        vx: (Math.random() - 0.5) * 0.5,
-                        vy: (Math.random() - 0.5) * 0.5,
-                        size: Math.random() * 2 + 0.5,
-                        color: COLORS[Math.floor(Math.random() * COLORS.length)],
-                        type: Math.random() > 0.5 ? '*' : '✨',
-                        phase: Math.random() * Math.PI * 2
-                    };
-                }
+                world.appendChild(el);
 
-                // Init
-                for (let i = 0; i < PARTICLE_COUNT; i++) {
-                    PARTICLES.push(createParticle());
-                }
+                // Physics State
+                const p = {
+                    el,
+                    x, y,
+                    vx: (Math.random() - 0.5) * 1.5, // Slow velocity
+                    vy: (Math.random() - 0.5) * 1.5,
+                    size: 30
+                };
+                particles.push(p);
 
-                // Mouse Interaction
-                let mouseX = -1000, mouseY = -1000;
-                window.addEventListener('mousemove', e => {
-                    mouseX = e.clientX;
-                    mouseY = e.clientY;
+                // Initial basic movement using WAAPI (KeyframeEffect)
+                // We use WAAPI for "texture" - rotation and scale pulse
+                el.animate([
+                    { transform: 'rotate(0deg) scale(1)' },
+                    { transform: 'rotate(360deg) scale(1.1)' }
+                ], {
+                    duration: 5000 + Math.random() * 5000,
+                    iterations: Infinity,
+                    direction: 'alternate',
+                    easing: 'ease-in-out'
                 });
+            }
 
-                // Main Loop
-                function loop() {
-                    // Clear with base color (simulating slate-50 #f8fafc)
-                    ctx.fillStyle = '#f8fafc';
-                    ctx.fillRect(0, 0, width, height);
+            // Physics Loop (rAF) for Position Updates & Collision
+            // Hybrid approach: WAAPI handles style, JS handles layout/physics
+            let lastTime = performance.now();
+            let mouseX = -1000, mouseY = -1000;
 
-                    // Update & Draw
-                    for (let i = 0; i < PARTICLE_COUNT; i++) {
-                        const p = PARTICLES[i];
+            document.addEventListener('mousemove', e => {
+                mouseX = e.clientX;
+                mouseY = e.clientY;
+            });
 
-                        // Move
-                        p.x += p.vx;
-                        p.y += p.vy;
-                        p.phase += 0.02;
+            function tick(now) {
+                const dt = (now - lastTime) / 16.6; // Normalize to 60fps
+                lastTime = now;
 
-                        // Mouse Interaction (Wind/Gravity)
-                        const dx = p.x - mouseX;
-                        const dy = p.y - mouseY;
-                        const distSq = dx * dx + dy * dy;
-                        if (distSq < 20000) { // < 140px radius
-                            const f = 100 / (distSq + 0.1);
-                            p.vx += dx * f * 0.001;
-                            p.vy += dy * f * 0.001;
-                        }
+                particles.forEach(p => {
+                    // Update Position
+                    p.x += p.vx * dt;
+                    p.y += p.vy * dt;
 
-                        // Friction/Drag
-                        p.vx *= 0.99;
-                        p.vy *= 0.99;
+                    // Wall Bounce
+                    if (p.x < -50) p.x = window.innerWidth + 50;
+                    if (p.x > window.innerWidth + 50) p.x = -50;
+                    if (p.y < -50) p.y = window.innerHeight + 50;
+                    if (p.y > window.innerHeight + 50) p.y = -50;
 
-                        // Wrap
-                        if (p.x < 0) p.x = width;
-                        if (p.x > width) p.x = 0;
-                        if (p.y < 0) p.y = height;
-                        if (p.y > height) p.y = 0;
-
-                        // Draw
-                        ctx.fillStyle = p.color;
-                        const pulse = 1 + Math.sin(p.phase) * 0.3;
-
-                        if (p.type === '*') {
-                            // Draw Cross/Asterisk
-                            const s = p.size * pulse;
-                            ctx.fillRect(p.x - s, p.y - s / 4, s * 2, s / 2);
-                            ctx.fillRect(p.x - s / 4, p.y - s, s / 2, s * 2);
-                        } else {
-                            // Draw Sparkle (Diamond)
-                            const s = p.size * pulse;
-                            ctx.beginPath();
-                            ctx.moveTo(p.x, p.y - s);
-                            ctx.lineTo(p.x + s, p.y);
-                            ctx.lineTo(p.x, p.y + s);
-                            ctx.lineTo(p.x - s, p.y);
-                            ctx.fill();
-                        }
+                    // Mouse Repel
+                    const dx = p.x - mouseX;
+                    const dy = p.y - mouseY;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist < 150) {
+                        const force = (150 - dist) / 150;
+                        p.vx += (dx / dist) * force * 0.5;
+                        p.vy += (dy / dist) * force * 0.5;
                     }
 
-                    requestAnimationFrame(loop);
-                }
-                loop();
-            })();
+                    // Friction
+                    p.vx *= 0.99;
+                    p.vy *= 0.99;
+
+                    // Apply to Transform safely
+                    p.el.style.transform = `translate3d(${p.x}px, ${p.y}px, 0)`;
+                });
+
+                requestAnimationFrame(tick);
+            }
+            requestAnimationFrame(tick);
+
+            // Interaction: Click to "Pop" (WAAPI One-shot)
+            world.addEventListener('click', (e) => {
+                // Find closest particle
+                // Just pop a random one near click for fun
+                const clickX = e.clientX;
+                const clickY = e.clientY;
+
+                particles.forEach(p => {
+                    const dx = p.x - clickX;
+                    const dy = p.y - clickY;
+                    if (Math.sqrt(dx * dx + dy * dy) < 100) {
+                        // WAAPI Pop Effect
+                        p.el.animate([
+                            { transform: `translate3d(${p.x}px, ${p.y}px, 0) scale(1)`, opacity: 1 },
+                            { transform: `translate3d(${p.x}px, ${p.y - 50}px, 0) scale(2)`, opacity: 0 }
+                        ], {
+                            duration: 500,
+                            easing: 'ease-out'
+                        }).onfinish = () => {
+                            // Reset
+                            p.x = Math.random() * window.innerWidth;
+                            p.y = window.innerHeight + 50;
+                            p.el.style.opacity = 1;
+                        };
+                    }
+                });
+            });
+
+        })();
     </script>
 
     <!-- Skip to Main Content -->

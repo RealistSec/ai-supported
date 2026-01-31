@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="280" height="150" viewBox="0 0 280 150" role="img" aria-label="AI Supported - Human Verified">
+  <title>AI Supported - Human Verified</title>
+  
+  <!-- LAYER 1 (BACK): Semi-transparent mint green pill background (60% opacity) -->
+  <rect x="15" y="10" width="250" height="130" rx="65" ry="65" fill="#f0fdfa" fill-opacity="0.6"/>
+  
+  <!-- LAYER 2: Sparkle decorations -->
+  <g transform="translate(105, 25)">
+    <!-- Asterisk * -->
+    <text x="0" y="22" font-family="system-ui, -apple-system, sans-serif" font-size="24" fill="#1e293b">*</text>
+    <!-- Sparkle emoji ✨ -->
+    <text x="28" y="24" font-size="28">✨</text>
+  </g>
+  
+  <!-- LAYER 3 (FRONT): Badge - positioned with mt-4 equivalent (16px) gap from sparkles -->
+  <g transform="translate(38, 75)">
+    <!-- Badge container with rounded corners -->
+    <clipPath id="badge-clip">
+      <rect width="204" height="28" rx="4" fill="#fff"/>
+    </clipPath>
+    <g clip-path="url(#badge-clip)">
+      <!-- Left side: dark grey -->
+      <rect width="109" height="28" fill="#555"/>
+      <!-- Right side: teal -->
+      <rect x="109" width="95" height="28" fill="#14b8a6"/>
+      <!-- Subtle gradient overlay -->
+      <linearGradient id="badge-gradient" x2="0" y2="100%">
+        <stop offset="0" stop-color="#fff" stop-opacity=".1"/>
+        <stop offset="1" stop-opacity=".1"/>
+      </linearGradient>
+      <rect width="204" height="28" fill="url(#badge-gradient)"/>
+    </g>
+    <!-- Text -->
+    <g fill="#fff" text-anchor="middle" font-family="Verdana, Geneva, DejaVu Sans, sans-serif" font-size="12">
+      <!-- Left text with shadow -->
+      <text x="54.5" y="19" fill="#010101" fill-opacity=".3">* ✨ AI Supported</text>
+      <text x="54.5" y="18" fill="#fff">* ✨ AI Supported</text>
+      <!-- Right text with shadow -->
+      <text x="156.5" y="19" fill="#010101" fill-opacity=".3">Human Verified</text>
+      <text x="156.5" y="18" fill="#fff">Human Verified</text>
+    </g>
+  </g>
+</svg>

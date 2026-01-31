@@ -160,150 +160,151 @@
                         teal: {
                             50: '#f0fdfa',
                             100: '#ccfbf1',
-                            500: '#14b8a6',
-                            700: '#0f766e',
-                            800: '#115e59',
-                            900: '#134e4a',
-                        }
+                            teal: { 50: '#f0fdfa', 100: '#ccfbf1', 200: '#99f6e4', 300: '#5eead4', 400: '#2dd4bf', 500: '#14b8a6', 600: '#0d9488', 700: '#0f766e', 800: '#115e59', 900: '#134e4a', 950: '#042f2e', },
+                        },
+                        fontFamily: {
+                            sans: ['Inter', 'sans-serif'],
+                        },
                     }
                 }
             }
-        }
     </script>
-
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body {
             font-family: 'Inter', sans-serif;
             scroll-behavior: smooth;
         }
 
-        /* --- V3: CANVAS 2D --- */
-        #canvas-bg {
+        /* --- V1: CSS 2026 FEATURES --- */
+
+        /* 1. @property for type-safe interpolation */
+        @property --angle {
+            syntax: '<angle>';
+            initial-value: 0deg;
+            inherits: false;
+        }
+
+        @property --x-off {
+            syntax: '<length>';
+            initial-value: 0px;
+            inherits: false;
+        }
+
+        .css-v1-bg {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
             z-index: -1;
+            overflow: hidden;
             background: #f8fafc;
-            /* Fallback / Base */
+            perspective: 1000px;
+        }
+
+        .particle {
+            position: absolute;
+            font-style: normal;
+            user-select: none;
+            will-change: transform, opacity;
+            /* Default placement roughly center */
+            left: 50%;
+            top: 50%;
+            font-size: clamp(1rem, 2vw, 3rem);
+        }
+
+        /* The Movement Logic using Trigonometry (sin/cos) */
+        @keyframes flow-complex {
+            0% {
+                transform: translate3d(calc(cos(var(--seed) * 1deg) * 60vw),
+                        -60vh,
+                        calc(sin(var(--seed) * 1deg) * 500px)) rotate(0deg);
+                opacity: 0;
+            }
+
+            10% {
+                opacity: 0.8;
+            }
+
+            90% {
+                opacity: 0.8;
+            }
+
+            100% {
+                transform: translate3d(calc(sin(var(--seed) * 2deg) * 60vw),
+                        60vh,
+                        calc(cos(var(--seed) * 2deg) * 200px)) rotate(360deg);
+                opacity: 0;
+            }
+        }
+
+        .particle {
+            --duration: calc(15s + var(--seed) * 0.2s);
+            animation: flow-complex var(--duration) linear infinite;
+            animation-delay: calc(var(--seed) * -1s);
+            color: color-mix(in srgb, var(--base-color), transparent 20%);
+        }
+
+        /* Collision / Interaction Simulation using :hover and :has() */
+        .particle:hover {
+            scale: 1.5;
+            filter: drop-shadow(0 0 10px var(--base-color));
+            z-index: 10;
+        }
+
+        /* Scroll-Driven Animation (Future Standard) */
+        /* Making particles loosely follow scroll */
+        @keyframes scroll-wobble {
+            from {
+                margin-top: 0px;
+            }
+
+            to {
+                margin-top: 200px;
+            }
+        }
+
+        .css-v1-bg {
+            /* Basic scroll timeline fallback support */
+            animation: scroll-wobble linear;
+            animation-timeline: scroll();
+        }
+
+        /* Reduced Motion */
+        @media (prefers-reduced-motion: reduce) {
+            .particle {
+                animation: none;
+                opacity: 0.2;
+                transform: translate3d(calc(var(--seed)*1px), calc(var(--seed)*1px), 0);
+            }
         }
     </style>
 </head>
 
 <body class="bg-slate-50 text-slate-800 flex flex-col min-h-screen relative">
 
-    <!-- V3: Canvas Element -->
-    <canvas id="canvas-bg"></canvas>
-
+    <!-- V1: Generated CSS Particles (Script populates them for cleanliness) -->
+    <div class="css-v1-bg" id="particle-container" aria-hidden="true"></div>
     <script>
-            (function () {
-                const canvas = document.getElementById('canvas-bg');
-                const ctx = canvas.getContext('2d', { alpha: false }); // Optimize: alpha false if we draw bg
+        // Generating 80 particles for the CSS engine to drive
+        const container = document.getElementById('particle-container');
+            const icons = ['*', '✨'];
+            const colors = ['#14b8a6', '#8b5cf6', '#f59e0b', '#ec4899']; // Teal, Purple, Amber, Pink
 
-                let width, height;
+            for(let i = 0; i < 80; i++) {
+            const el = document.createElement('i');
+            el.classList.add('particle');
+            el.innerText = icons[Math.floor(Math.random() * icons.length)];
 
-                // Configuration
-                const PARTICLE_COUNT = 3000;
-                const PARTICLES = [];
-                const COLORS = ['#14b8a6', '#8b5cf6', '#f59e0b', '#ec4899', '#3b82f6'];
+            // Setting CSS variables for the math to consume
+            el.style.setProperty('--seed', Math.random() * 100);
+            el.style.setProperty('--base-color', colors[Math.floor(Math.random() * colors.length)]);
+            el.style.color = 'var(--base-color)';
 
-                // Resize handler
-                function resize() {
-                    width = window.innerWidth;
-                    height = window.innerHeight;
-                    canvas.width = width;
-                    canvas.height = height;
-                }
-                window.addEventListener('resize', resize);
-                resize();
-
-                // Particle Class (Functional style for perf)
-                function createParticle() {
-                    return {
-                        x: Math.random() * width,
-                        y: Math.random() * height,
-                        vx: (Math.random() - 0.5) * 0.5,
-                        vy: (Math.random() - 0.5) * 0.5,
-                        size: Math.random() * 2 + 0.5,
-                        color: COLORS[Math.floor(Math.random() * COLORS.length)],
-                        type: Math.random() > 0.5 ? '*' : '✨',
-                        phase: Math.random() * Math.PI * 2
-                    };
-                }
-
-                // Init
-                for (let i = 0; i < PARTICLE_COUNT; i++) {
-                    PARTICLES.push(createParticle());
-                }
-
-                // Mouse Interaction
-                let mouseX = -1000, mouseY = -1000;
-                window.addEventListener('mousemove', e => {
-                    mouseX = e.clientX;
-                    mouseY = e.clientY;
-                });
-
-                // Main Loop
-                function loop() {
-                    // Clear with base color (simulating slate-50 #f8fafc)
-                    ctx.fillStyle = '#f8fafc';
-                    ctx.fillRect(0, 0, width, height);
-
-                    // Update & Draw
-                    for (let i = 0; i < PARTICLE_COUNT; i++) {
-                        const p = PARTICLES[i];
-
-                        // Move
-                        p.x += p.vx;
-                        p.y += p.vy;
-                        p.phase += 0.02;
-
-                        // Mouse Interaction (Wind/Gravity)
-                        const dx = p.x - mouseX;
-                        const dy = p.y - mouseY;
-                        const distSq = dx * dx + dy * dy;
-                        if (distSq < 20000) { // < 140px radius
-                            const f = 100 / (distSq + 0.1);
-                            p.vx += dx * f * 0.001;
-                            p.vy += dy * f * 0.001;
-                        }
-
-                        // Friction/Drag
-                        p.vx *= 0.99;
-                        p.vy *= 0.99;
-
-                        // Wrap
-                        if (p.x < 0) p.x = width;
-                        if (p.x > width) p.x = 0;
-                        if (p.y < 0) p.y = height;
-                        if (p.y > height) p.y = 0;
-
-                        // Draw
-                        ctx.fillStyle = p.color;
-                        const pulse = 1 + Math.sin(p.phase) * 0.3;
-
-                        if (p.type === '*') {
-                            // Draw Cross/Asterisk
-                            const s = p.size * pulse;
-                            ctx.fillRect(p.x - s, p.y - s / 4, s * 2, s / 2);
-                            ctx.fillRect(p.x - s / 4, p.y - s, s / 2, s * 2);
-                        } else {
-                            // Draw Sparkle (Diamond)
-                            const s = p.size * pulse;
-                            ctx.beginPath();
-                            ctx.moveTo(p.x, p.y - s);
-                            ctx.lineTo(p.x + s, p.y);
-                            ctx.lineTo(p.x, p.y + s);
-                            ctx.lineTo(p.x - s, p.y);
-                            ctx.fill();
-                        }
-                    }
-
-                    requestAnimationFrame(loop);
-                }
-                loop();
-            })();
+            container.appendChild(el);
+        }
     </script>
 
     <!-- Skip to Main Content -->
